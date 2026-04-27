@@ -8,13 +8,27 @@ export const CONSTANTS = {
         RETRY_DELAY_MS: 100,
     },
 
-    COMPLEXITY_THRESHOLDS:{
+    COMPLEXITY_THRESHOLDS: {
         LOW: 5,
         MEDIUM: 10,
         HIGH: 15,
     },
 
-    INIT_COMPLEXITY: 1
+    NESTING_THRESHOLDS: {
+        MEDIUM: 4,
+        HIGH: 6,
+    },
+
+    METRICS:{
+        COMPLEXITY: 'Complexity',
+        DUPLICATION: 'Duplication',
+        TYPE_SAFETY: 'Type Safety',
+        COUPLING: 'Coupling'
+    },
+
+    IMPORTS_THRESHOLD: 10,
+    INIT_COMPLEXITY: 1,
+    ANONYMOUS: 'anonymous'
 
 } as const;
 

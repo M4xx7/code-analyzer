@@ -1,21 +1,7 @@
-import { Project, Node } from 'ts-morph';
-import type { MetricResult } from '../../../core/types';
+import {Project, Node} from 'ts-morph';
+import type {MetricResult} from '../../../core/types';
+import {CONSTANTS} from "../../../constants/constants";
 
-function normalizeNode(node: Node): string {
-    // Clone text and normalize identifiers/literals
-    let text = node.getText();
-
-    // Replace variable names
-    text = text.replace(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g, 'VAR');
-
-    // Replace numbers
-    text = text.replace(/\b\d+\b/g, 'NUM');
-
-    // Replace strings
-    text = text.replace(/(['"`]).*?\1/g, 'STR');
-
-    return text;
-}
 
 export async function calculateDuplication(repoPath: string): Promise<MetricResult> {
     const project = new Project({
@@ -25,6 +11,7 @@ export async function calculateDuplication(repoPath: string): Promise<MetricResu
     project.addSourceFilesAtPaths(`${repoPath}/**/*.{ts,js}`);
 
     const map = new Map<string, { file: string; name: string }[]>();
+    let functionCount = 0;
 
     for (const sourceFile of project.getSourceFiles()) {
         const filePath = sourceFile.getBaseName();
@@ -40,15 +27,17 @@ export async function calculateDuplication(repoPath: string): Promise<MetricResu
             const body = fn.getBody();
             if (!body) continue;
 
-            const normalized = normalizeNode(body);
+            functionCount++;
 
-            if (!map.has(normalized)) {
-                map.set(normalized, []);
+            const normalizedBody = normalizeNode(body);
+
+            if (!map.has(normalizedBody)) {
+                map.set(normalizedBody, []);
             }
 
-            map.get(normalized)!.push({
+            map.get(normalizedBody)!.push({
                 file: filePath,
-                name: fn.getSymbol()?.getName() || 'anonymous',
+                name: fn.getSymbol()?.getName() || CONSTANTS.ANONYMOUS,
             });
         }
     }
@@ -67,12 +56,58 @@ export async function calculateDuplication(repoPath: string): Promise<MetricResu
         }
     }
 
-    const score = duplicatedBlocks;
 
     return {
-        metricName: 'Code Duplication',
-        score,
-        description: `Found ${duplicates.length} duplicated code blocks across functions.`,
+        metricName:  CONSTANTS.METRICS.DUPLICATION,
+        score: duplicates.length,
+        description: `Found ${duplicates.length} duplicated code blocks across ${functionCount} functions.`,
         issuesFound: duplicates,
     };
+}
+
+export function normalizeNode(node: Node): string {
+    return normalize(node);
+}
+
+function normalize(node: Node): string {
+    const kind = node.getKind();
+
+    if (Node.isIdentifier(node)) {
+        return 'VAR';
+    }
+
+    if (
+        Node.isNumericLiteral(node) ||
+        Node.isStringLiteral(node) ||
+        Node.isNoSubstitutionTemplateLiteral(node)
+    ) {
+        return 'LIT';
+    }
+
+    if (Node.isBinaryExpression(node)) {
+        return `(${normalize(node.getLeft())} ${node.getOperatorToken().getText()} ${normalize(node.getRight())})`;
+    }
+
+    if (Node.isConditionalExpression(node)) {
+        return `(${normalize(node.getCondition())} ? ${normalize(node.getWhenTrue())} : ${normalize(node.getWhenFalse())})`;
+    }
+
+    if (Node.isCallExpression(node)) {
+        const args = node.getArguments().map(arg => normalize(arg)).join(', ');
+        return `CALL(${args})`;
+    }
+
+    if (Node.isBlock(node)) {
+        return `{ ${node.getStatements().map(stmt => normalize(stmt)).join('; ')} }`;
+    }
+
+    if (Node.isIfStatement(node)) {
+        return `IF(${normalize(node.getExpression())}) ${normalize(node.getThenStatement())}`;
+    }
+
+    if (Node.isReturnStatement(node)) {
+        return `RETURN ${node.getExpression() ? normalize(node.getExpression()!) : ''}`;
+    }
+
+    return node.getChildren().map(child => normalize(child)).join(' ');
 }

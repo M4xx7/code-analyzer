@@ -1,5 +1,6 @@
 import {Project} from 'ts-morph';
 import type {MetricResult} from '../../../core/types';
+import {CONSTANTS} from "../../../constants/constants";
 
 export async function calculateCoupling(repoPath: string): Promise<MetricResult> {
     const project = new Project({
@@ -29,13 +30,11 @@ export async function calculateCoupling(repoPath: string): Promise<MetricResult>
 
         maxCoupling = Math.max(maxCoupling, uniqueCount);
 
-        // 🚨 Heuristic thresholds
-        if (uniqueCount > 10) {
+        if (uniqueCount > CONSTANTS.IMPORTS_THRESHOLD) {
             issues.push({
                 file: filePath,
                 imports: importCount,
                 uniqueDependencies: uniqueCount,
-                severity: uniqueCount > 20 ? 'high' : 'medium',
             });
         }
     }
@@ -43,12 +42,12 @@ export async function calculateCoupling(repoPath: string): Promise<MetricResult>
     const avgCoupling = fileCount > 0 ? totalImports / fileCount : 0;
 
     return {
-        metricName: 'Coupling',
+        metricName: CONSTANTS.METRICS.COUPLING,
         score: parseFloat(avgCoupling.toFixed(2)),
         description: `
-Analyzed ${fileCount} files
-Avg imports per file: ${avgCoupling.toFixed(2)}
-Max unique dependencies in a file: ${maxCoupling}
+        Analyzed ${fileCount} files
+        Avg imports per file: ${avgCoupling.toFixed(1)}
+        Max unique dependencies in a file: ${maxCoupling}
         `.trim(),
         issuesFound: issues,
     };

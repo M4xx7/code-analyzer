@@ -1,5 +1,6 @@
 import { Project, SyntaxKind, Node } from 'ts-morph';
 import type { MetricResult } from '../../../core/types';
+import {CONSTANTS} from "../../../constants/constants";
 
 export async function calculateTypeSafety(repoPath: string): Promise<MetricResult> {
     const project = new Project({
@@ -16,7 +17,7 @@ export async function calculateTypeSafety(repoPath: string): Promise<MetricResul
 
     if (sourceFiles.length === 0) {
         return {
-            metricName: 'Type Safety',
+            metricName: CONSTANTS.METRICS.TYPE_SAFETY,
             score: 0,
             description: 'No TypeScript files found to analyze.',
         };
@@ -30,23 +31,19 @@ export async function calculateTypeSafety(repoPath: string): Promise<MetricResul
 
     for (const sourceFile of sourceFiles) {
         for (const node of sourceFile.getDescendants()) {
-            // Count explicit 'any'
+
             if (node.getKind() === SyntaxKind.AnyKeyword) {
                 anyCount++;
             }
 
-            // Count 'unknown'
             if (node.getKind() === SyntaxKind.UnknownKeyword) {
                 unknownCount++;
             }
 
-            // Count non-null assertions (!)
             if (node.getKind() === SyntaxKind.NonNullExpression) {
                 nonNullAssertions++;
             }
 
-            // === Type coverage analysis ===
-            // Only analyze nodes that can meaningfully have type information
             if (
                 Node.isVariableDeclaration(node) ||
                 Node.isPropertyDeclaration(node) ||
@@ -89,21 +86,15 @@ export async function calculateTypeSafety(repoPath: string): Promise<MetricResul
         }
     }
 
-    const typeCoverage = totalRelevantNodes === 0 ? 1 : wellTypedNodes / totalRelevantNodes;
+    const typeCoverage = totalRelevantNodes === 0 ? 1 : wellTypedNodes / totalRelevantNodes * 100;
 
-    // Penalty for bad practices
-    const penalty = anyCount * 3 + unknownCount * 0.8 + nonNullAssertions * 1.2;
-    const normalizedPenalty = Math.min(penalty / Math.max(sourceFiles.length, 1), 40);
-
-    let score = Math.max(0, Math.min(100, typeCoverage * 100 - normalizedPenalty));
-    score = parseFloat(score.toFixed(1));
 
     return {
-        metricName: 'Type Safety',
-        score,
-        description: `Type coverage: ${(typeCoverage * 100).toFixed(1)}%\n` +
-            `any usages: ${anyCount}\n` +
-            `unknown usages: ${unknownCount}\n` +
-            `non-null assertions (!): ${nonNullAssertions}`,
+        metricName: CONSTANTS.METRICS.TYPE_SAFETY,
+        score:  parseFloat(typeCoverage.toFixed(1)),
+        description: `Type coverage: ${(typeCoverage).toFixed(1)}%\n` +
+            `any usages: ${anyCount}.\n` +
+            `unknown usages: ${unknownCount}.\n` +
+            `non-null assertions: ${nonNullAssertions}.`,
     };
 }

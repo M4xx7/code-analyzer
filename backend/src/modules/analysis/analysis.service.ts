@@ -19,9 +19,13 @@ export class AnalysisService {
         try {
 
             const complexityRaw = await calculateComplexity(repoPath);
+            console.log("COMPLEXITY DONE")
             const couplingRaw = await calculateCoupling(repoPath);
+            console.log("COUPLING DONE")
             const typeSafetyRaw = await calculateTypeSafety(repoPath);
+            console.log("TYPE SAFETY DONE")
             const duplicationRaw = await calculateDuplication(repoPath);
+            console.log("DUPLICATION DONE")
 
             const {owner, repoName} = this.repoService.parseRepoIdentifier(repoInput);
 

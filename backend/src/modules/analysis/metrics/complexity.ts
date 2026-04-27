@@ -28,85 +28,70 @@ export async function calculateComplexity(repoPath: string): Promise<MetricResul
         for (const fn of functions) {
             let complexity = CONSTANTS.INIT_COMPLEXITY;
             let maxNesting = 0;
-            let currentNesting = 0;
 
             fn.forEachDescendant((node) => {
-                if (
-                    Node.isIfStatement(node) ||
-                    Node.isForStatement(node) ||
-                    Node.isWhileStatement(node) ||
-                    Node.isDoStatement(node) ||
-                    Node.isSwitchStatement(node) ||
-                    Node.isCatchClause(node)
-                ) {
-                    currentNesting++;
-                    maxNesting = Math.max(maxNesting, currentNesting);
-                }
-
-                if (node.getKind() === SyntaxKind.Block) {
-                    currentNesting = Math.max(0, currentNesting - 1);
-                }
-
-                if (
-                    Node.isIfStatement(node) ||
-                    Node.isForStatement(node) ||
-                    Node.isForInStatement(node) ||
-                    Node.isForOfStatement(node) ||
-                    Node.isWhileStatement(node) ||
-                    Node.isDoStatement(node) ||
-                    Node.isCatchClause(node) ||
-                    Node.isCaseClause(node) ||
-                    Node.isConditionalExpression(node) ||
-                    Node.isSwitchStatement(node)
-                ) {
+                if (isControlFlowStatement(node)) {
                     complexity++;
+                    const ancestors = node.getAncestors();
+                    const depth = ancestors.filter(a =>
+                        isControlFlowStatement(a)
+                    ).length;
+                    maxNesting = Math.max(maxNesting, depth + 1);
                 }
 
-                // ⚡ Logical operators
                 if (Node.isBinaryExpression(node)) {
-                    const op = node.getOperatorToken().getText();
 
-                    if (op === '&&' || op === '||' || op === '??') {
+                    const op = node.getOperatorToken().getText();
+                    if (isLogicalOperator(op)) {
                         complexity++;
                     }
                 }
 
-                // ⚡ Optional chaining (modern complexity)
                 if (node.getKind() === SyntaxKind.QuestionDotToken) {
                     complexity++;
                 }
+
             });
 
             totalComplexity += complexity;
             functionCount++;
             maxComplexity = Math.max(maxComplexity, complexity);
 
-            if (complexity > CONSTANTS.COMPLEXITY_THRESHOLDS.MEDIUM || maxNesting > 4) {
+            if (complexity > CONSTANTS.COMPLEXITY_THRESHOLDS.MEDIUM || maxNesting > CONSTANTS.NESTING_THRESHOLDS.MEDIUM) {
                 issues.push({
                     file: filePath,
-                    functionName: fn.getSymbol()?.getName() || 'anonymous',
+                    functionName: fn.getSymbol()?.getName() || CONSTANTS.ANONYMOUS,
                     complexity,
                     nesting: maxNesting,
-                    severity:
-                        complexity > CONSTANTS.COMPLEXITY_THRESHOLDS.HIGH || maxNesting > 6
-                            ? 'high'
-                            : 'medium',
                 });
             }
         }
     }
 
-    const avgComplexity =
-        functionCount > 0 ? totalComplexity / functionCount : 0;
+    const avgComplexity = functionCount > 0 ? totalComplexity / functionCount : 0;
 
     return {
-        metricName: 'Cyclomatic Complexity',
+        metricName: CONSTANTS.METRICS.COMPLEXITY,
         score: parseFloat(avgComplexity.toFixed(2)),
         description: `
-Analyzed ${functionCount} functions
-Avg complexity: ${avgComplexity.toFixed(2)}
-Max complexity: ${maxComplexity}
+        Analyzed ${functionCount} functions.\n
+        Avg complexity: ${avgComplexity.toFixed(2)}.\n
+        Max complexity: ${maxComplexity}.
         `.trim(),
         issuesFound: issues,
     };
+}
+
+function isControlFlowStatement(node: Node): boolean {
+
+    return Node.isIfStatement(node) ||
+        Node.isForStatement(node) ||
+        Node.isWhileStatement(node) ||
+        Node.isDoStatement(node) ||
+        Node.isSwitchStatement(node) ||
+        Node.isCatchClause(node);
+}
+
+function isLogicalOperator(operator: string): boolean {
+    return operator === '&&' || operator === '||' || operator === '??';
 }
