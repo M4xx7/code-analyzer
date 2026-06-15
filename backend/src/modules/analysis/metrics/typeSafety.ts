@@ -92,9 +92,6 @@ export async function calculateTypeSafety(repoPath: string): Promise<MetricResul
     return {
         metricName: CONSTANTS.METRICS.TYPE_SAFETY,
         score:  parseFloat(typeCoverage.toFixed(1)),
-        description: `Type coverage: ${(typeCoverage).toFixed(1)}%\n` +
-            `any usages: ${anyCount}.\n` +
-            `unknown usages: ${unknownCount}.\n` +
-            `non-null assertions: ${nonNullAssertions}.`,
+        description: `Type coverage: ${(typeCoverage).toFixed(1)}%`,
     };
 }

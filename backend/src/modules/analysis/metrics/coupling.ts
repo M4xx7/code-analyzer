@@ -1,54 +1,53 @@
-import {Project} from 'ts-morph';
+import {Project, ImportDeclaration} from 'ts-morph';
 import type {MetricResult} from '../../../core/types';
 import {CONSTANTS} from "../../../constants/constants";
 
 export async function calculateCoupling(repoPath: string): Promise<MetricResult> {
-    const project = new Project({
-        skipAddingFilesFromTsConfig: true,
-    });
-
+    const project = new Project({ skipAddingFilesFromTsConfig: true });
     project.addSourceFilesAtPaths(`${repoPath}/**/*.{ts,js}`);
 
     const issues = [];
-    let totalImports = 0;
+    let totalLocalImports = 0;
     let fileCount = 0;
     let maxCoupling = 0;
 
     for (const sourceFile of project.getSourceFiles()) {
-        const filePath = sourceFile.getBaseName();
+        const filePath = sourceFile.getFilePath();
 
-        const imports = sourceFile.getImportDeclarations();
-        const uniqueModules = new Set(
-            imports.map(i => i.getModuleSpecifierValue())
+        const localImports = sourceFile.getImportDeclarations().filter(i => {
+            const moduleSpecifier = i.getModuleSpecifierValue();
+            const isLocal = moduleSpecifier.startsWith('.') || moduleSpecifier.startsWith('/');
+            const isTypeOnly = i.isTypeOnly();
+            return isLocal && !isTypeOnly;
+        });
+
+        const uniqueLocalModules = new Set(
+            localImports.map(i => i.getModuleSpecifierValue())
         );
 
-        const importCount = imports.length;
-        const uniqueCount = uniqueModules.size;
+        const uniqueCount = uniqueLocalModules.size;
 
-        totalImports += importCount;
+        totalLocalImports += uniqueCount;
         fileCount++;
-
         maxCoupling = Math.max(maxCoupling, uniqueCount);
 
         if (uniqueCount > CONSTANTS.IMPORTS_THRESHOLD) {
             issues.push({
-                file: filePath,
-                imports: importCount,
+                file: sourceFile.getBaseName(),
                 uniqueDependencies: uniqueCount,
             });
         }
     }
 
-    const avgCoupling = fileCount > 0 ? totalImports / fileCount : 0;
+    issues.sort((a, b) => b.uniqueDependencies - a.uniqueDependencies);
+
+
+    const avgCoupling = fileCount > 0 ? totalLocalImports / fileCount : 0;
 
     return {
         metricName: CONSTANTS.METRICS.COUPLING,
         score: parseFloat(avgCoupling.toFixed(2)),
-        description: `
-        Analyzed ${fileCount} files
-        Avg imports per file: ${avgCoupling.toFixed(1)}
-        Max unique dependencies in a file: ${maxCoupling}
-        `.trim(),
+        description: `Analyzed ${fileCount} files. Avg local dependencies: ${avgCoupling.toFixed(2)}`,
         issuesFound: issues,
     };
 }

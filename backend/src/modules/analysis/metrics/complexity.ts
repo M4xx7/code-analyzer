@@ -68,6 +68,8 @@ export async function calculateComplexity(repoPath: string): Promise<MetricResul
         }
     }
 
+    issues.sort((a, b) => b.complexity - a.complexity);
+
     const avgComplexity = functionCount > 0 ? totalComplexity / functionCount : 0;
 
     return {
@@ -75,8 +77,7 @@ export async function calculateComplexity(repoPath: string): Promise<MetricResul
         score: parseFloat(avgComplexity.toFixed(2)),
         description: `
         Analyzed ${functionCount} functions.\n
-        Avg complexity: ${avgComplexity.toFixed(2)}.\n
-        Max complexity: ${maxComplexity}.
+        Avg complexity: ${avgComplexity.toFixed(2)}
         `.trim(),
         issuesFound: issues,
     };

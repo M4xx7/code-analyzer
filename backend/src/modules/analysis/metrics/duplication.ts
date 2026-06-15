@@ -60,7 +60,7 @@ export async function calculateDuplication(repoPath: string): Promise<MetricResu
     return {
         metricName:  CONSTANTS.METRICS.DUPLICATION,
         score: duplicates.length,
-        description: `Found ${duplicates.length} duplicated code blocks across ${functionCount} functions.`,
+        description: `Analyzed ${functionCount} functions. Found ${duplicates.length} duplicated code blocks.`,
         issuesFound: duplicates,
     };
 }
