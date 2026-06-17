@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Initialize services
+
 const repoService = new RepoService();
 const analysisService = new AnalysisService(repoService);
 

@@ -1,7 +1,6 @@
 export interface RepositoryInfo {
     owner: string;
     repoName: string;
-    url: string;
 }
 
 export interface MetricResult {
@@ -26,5 +25,4 @@ export interface AnalysisReport {
         typeSafety: MetricResult;
         coupling: MetricResult;
     };
-    overallScore: number;
 }

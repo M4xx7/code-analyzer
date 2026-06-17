@@ -3,12 +3,8 @@ import type {MetricResult} from '../../../core/types';
 import {CONSTANTS} from "../../../constants/constants";
 
 
-export async function calculateDuplication(repoPath: string): Promise<MetricResult> {
-    const project = new Project({
-        skipAddingFilesFromTsConfig: true,
-    });
+export async function calculateDuplication(project: Project): Promise<MetricResult> {
 
-    project.addSourceFilesAtPaths(`${repoPath}/**/*.{ts,js}`);
 
     const map = new Map<string, { file: string; name: string }[]>();
     let functionCount = 0;

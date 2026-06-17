@@ -1,10 +1,12 @@
-import { simpleGit, SimpleGit } from 'simple-git';
+import { simpleGit, SimpleGit, SimpleGitOptions, } from 'simple-git';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { CONSTANTS } from "../../constants/constants";
 
 export class RepoService {
-    private git: SimpleGit = simpleGit();
+    private git: SimpleGit = simpleGit({
+        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
+    } as Partial<SimpleGitOptions>);
 
     async fetchRepo(repoInput: string): Promise<string> {
         if (!repoInput?.trim()) {
@@ -16,14 +18,19 @@ export class RepoService {
 
         const targetDir = path.join(
             CONSTANTS.BASE_TEMP_DIR,
-            `${owner}-${repoName}-${Date.now()}`
+            `${owner}-${repoName}`
         );
 
         try {
+
+            console.log('before cloning');
+
             await this.git.clone(repoUrl, targetDir, [
                 '--depth',
                 String(CONSTANTS.GIT.SHALLOW_CLONE_DEPTH),
             ]);
+
+            console.log('finished cloning');
 
             return targetDir;
         } catch (error: any) {
@@ -75,16 +82,4 @@ export class RepoService {
         throw new Error(`Could not parse repository identifier: "${input}"`);
     }
 
-    async cleanup(dirPath: string): Promise<void> {
-        try {
-            await fs.rm(dirPath, {
-                recursive: true,
-                force: true,
-                maxRetries: CONSTANTS.GIT.RETRY_COUNT,
-                retryDelay: CONSTANTS.GIT.RETRY_DELAY_MS,
-            });
-        } catch (error) {
-            console.error(`Non-fatal: Failed to clean up directory ${dirPath}:`, error);
-        }
-    }
 }

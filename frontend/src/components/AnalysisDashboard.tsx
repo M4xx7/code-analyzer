@@ -60,7 +60,7 @@ export default function AnalysisDashboard({analysis}: AnalysisDashboardProps) {
                 metricType="coupling"
             >
                 <HotspotList
-                    issues={metrics.complexity.issuesFound}
+                    issues={metrics.coupling.issuesFound}
                     renderItem={(issue, i) => (
                         <HotspotItem
                             key={i}

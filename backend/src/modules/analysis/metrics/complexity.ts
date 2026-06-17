@@ -2,13 +2,8 @@ import {Project, Node, SyntaxKind} from 'ts-morph';
 import type {MetricResult} from '../../../core/types';
 import {CONSTANTS} from '../../../constants/constants';
 
-export async function calculateComplexity(repoPath: string): Promise<MetricResult> {
+export async function calculateComplexity(project: Project): Promise<MetricResult> {
 
-    const project = new Project({
-        skipAddingFilesFromTsConfig: true,
-    });
-
-    project.addSourceFilesAtPaths(`${repoPath}/**/*.{ts,js}`);
 
     const issues = [];
     let totalComplexity = 0;

@@ -1,7 +1,6 @@
 export interface Repository {
     owner: string;
     repoName: string;
-    branch: string;
 }
 
 export interface ComplexityIssue {

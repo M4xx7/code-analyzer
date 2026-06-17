@@ -2,9 +2,7 @@ import {Project, ImportDeclaration} from 'ts-morph';
 import type {MetricResult} from '../../../core/types';
 import {CONSTANTS} from "../../../constants/constants";
 
-export async function calculateCoupling(repoPath: string): Promise<MetricResult> {
-    const project = new Project({ skipAddingFilesFromTsConfig: true });
-    project.addSourceFilesAtPaths(`${repoPath}/**/*.{ts,js}`);
+export async function calculateCoupling(project: Project): Promise<MetricResult> {
 
     const issues = [];
     let totalLocalImports = 0;
@@ -12,7 +10,6 @@ export async function calculateCoupling(repoPath: string): Promise<MetricResult>
     let maxCoupling = 0;
 
     for (const sourceFile of project.getSourceFiles()) {
-        const filePath = sourceFile.getFilePath();
 
         const localImports = sourceFile.getImportDeclarations().filter(i => {
             const moduleSpecifier = i.getModuleSpecifierValue();

@@ -1,11 +1,13 @@
-import {RepoService} from '../repository/repo.service';
-import {calculateComplexity} from './metrics/complexity';
-import {calculateDuplication} from './metrics/duplication';
-import {calculateTypeSafety} from './metrics/typeSafety';
-import type {AnalysisReport, MetricResult} from '../../core/types';
-import {calculateCoupling} from "./metrics/coupling";
+import { RepoService } from '../repository/repo.service';
+import { calculateComplexity } from './metrics/complexity';
+import { calculateDuplication } from './metrics/duplication';
+import { calculateTypeSafety } from './metrics/typeSafety';
+import type { AnalysisReport, MetricResult } from '../../core/types';
+import { calculateCoupling } from "./metrics/coupling";
+import { Project } from 'ts-morph';
 
 export class AnalysisService {
+
     constructor(private repoService: RepoService) {
     }
 
@@ -18,18 +20,41 @@ export class AnalysisService {
 
         try {
 
-            const complexityRaw = await calculateComplexity(repoPath);
-            const couplingRaw = await calculateCoupling(repoPath);
-            const typeSafetyRaw = await calculateTypeSafety(repoPath);
-            const duplicationRaw = await calculateDuplication(repoPath);
 
-            const {owner, repoName} = this.repoService.parseRepoIdentifier(repoInput);
+            const project = new Project({
+                skipAddingFilesFromTsConfig: true,
+                compilerOptions: {
+                    skipLibCheck: true,
+                    noResolve: true,
+                },
+            });
+
+            project.addSourceFilesAtPaths([
+                `${repoPath}/**/*.{ts,js,tsx,jsx}`,
+                `!${repoPath}/**/*.test.{ts,js,tsx,jsx}`,
+                `!${repoPath}/**/*.spec.{ts,js,tsx,jsx}`,
+                `!${repoPath}/**/node_modules/**`,
+                `!${repoPath}/**/dist/**`
+            ]);
+
+
+            console.log('starting caclulating...');
+
+            const [complexityRaw, couplingRaw, typeSafetyRaw, duplicationRaw] = await Promise.all([
+                calculateComplexity(project),
+                calculateCoupling(project),
+                calculateTypeSafety(project),
+                calculateDuplication(project)
+            ]);
+
+            console.log('finished calculating.');
+
+            const { owner, repoName } = this.repoService.parseRepoIdentifier(repoInput);
 
             return {
                 repository: {
                     owner,
-                    repoName,
-                    url: `https://github.com/${owner}/${repoName}`,
+                    repoName
                 },
                 metrics: {
                     complexity: this.toMetricResult(complexityRaw, 'Complexity'),
@@ -37,13 +62,9 @@ export class AnalysisService {
                     typeSafety: this.toMetricResult(typeSafetyRaw, 'Type Safety'),
                     coupling: this.toMetricResult(couplingRaw, 'Coupling')
                 },
-                overallScore: this.calculateOverall(
-                    this.getScore(complexityRaw),
-                    this.getScore(duplicationRaw)
-                ),
             };
         } finally {
-            await this.repoService.cleanup(repoPath);
+
         }
     }
 
@@ -63,11 +84,4 @@ export class AnalysisService {
         };
     }
 
-    private getScore(result: any): number {
-        return typeof result?.score === 'number' ? result.score : (typeof result === 'number' ? result : 0);
-    }
-
-    private calculateOverall(complexityScore: number, duplicationScore: number): number {
-        return Math.round(((complexityScore + duplicationScore) / 2) * 100) / 100;
-    }
 }

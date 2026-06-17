@@ -1,17 +1,9 @@
 import { Project, SyntaxKind, Node } from 'ts-morph';
 import type { MetricResult } from '../../../core/types';
-import {CONSTANTS} from "../../../constants/constants";
+import { CONSTANTS } from "../../../constants/constants";
 
-export async function calculateTypeSafety(repoPath: string): Promise<MetricResult> {
-    const project = new Project({
-        skipAddingFilesFromTsConfig: true,
-        compilerOptions: {
-            skipLibCheck: true,
-            noResolve: true,
-        },
-    });
+export async function calculateTypeSafety(project: Project): Promise<MetricResult> {
 
-    project.addSourceFilesAtPaths(`${repoPath}/**/*.{ts,tsx}`);
 
     const sourceFiles = project.getSourceFiles();
 
@@ -68,11 +60,14 @@ export async function calculateTypeSafety(repoPath: string): Promise<MetricResul
                 }
 
                 try {
-                    const inferredTypeText = node.getType().getText();
-                    const isAnyType = inferredTypeText.includes('any') &&
-                        !inferredTypeText.includes('unknown');
+                    if (Node.isVariableDeclaration(node) || Node.isPropertyDeclaration(node) ||
+                        Node.isPropertySignature(node)
+                    ) {
 
-                    if (!isAnyType) {
+                        if (node.getTypeNode() !== undefined || node.getInitializer() !== undefined) {
+                            hasGoodType = true;
+                        }
+                    } else {
                         hasGoodType = true;
                     }
                 } catch {
@@ -91,7 +86,7 @@ export async function calculateTypeSafety(repoPath: string): Promise<MetricResul
 
     return {
         metricName: CONSTANTS.METRICS.TYPE_SAFETY,
-        score:  parseFloat(typeCoverage.toFixed(1)),
+        score: parseFloat(typeCoverage.toFixed(1)),
         description: `Type coverage: ${(typeCoverage).toFixed(1)}%`,
     };
 }
