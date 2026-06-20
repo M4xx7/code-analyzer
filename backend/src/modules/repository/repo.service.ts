@@ -2,6 +2,8 @@ import { simpleGit, SimpleGit, SimpleGitOptions, } from 'simple-git';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { CONSTANTS } from "../../constants/constants";
+import { ValidationError } from '../../errors/validation.error';
+import { CloneError } from '../../errors/clone.error';
 
 export class RepoService {
     private git: SimpleGit = simpleGit({
@@ -10,7 +12,7 @@ export class RepoService {
 
     async fetchRepo(repoInput: string): Promise<string> {
         if (!repoInput?.trim()) {
-            throw new Error('Repository input is required');
+            throw new ValidationError('Repository input is required');
         }
 
         const repoUrl = this.normalizeToGitUrl(repoInput);
@@ -23,18 +25,14 @@ export class RepoService {
 
         try {
 
-            console.log('before cloning');
-
             await this.git.clone(repoUrl, targetDir, [
                 '--depth',
                 String(CONSTANTS.GIT.SHALLOW_CLONE_DEPTH),
             ]);
 
-            console.log('finished cloning');
-
             return targetDir;
         } catch (error: any) {
-            throw new Error(`Failed to clone ${owner}/${repoName}: ${error.message}`);
+            throw new CloneError(`Failed to clone. Repository wasn't found.`);
         }
     }
 
@@ -49,7 +47,6 @@ export class RepoService {
             return str;
         }
 
-        // owner/repo format
         if (str.includes('/')) {
             const [owner, repo] = str.split('/').map(s => s.trim());
             if (owner && repo) {
@@ -57,7 +54,7 @@ export class RepoService {
             }
         }
 
-        throw new Error(`Invalid repository format: "${input}". Use "owner/repo" or full GitHub URL.`);
+        throw new ValidationError(`Invalid repository format. Use "owner/repo" or full GitHub URL.`);
     }
 
     public parseRepoIdentifier(input: string): { owner: string; repoName: string } {
@@ -82,4 +79,17 @@ export class RepoService {
         throw new Error(`Could not parse repository identifier: "${input}"`);
     }
 
+
+    async cleanup(dirPath: string): Promise<void> {
+        try {
+            await fs.rm(dirPath, { 
+                recursive: true, 
+                force: true,
+                maxRetries: 3,
+                retryDelay: 100 
+            });
+        } catch (error: any) {
+            console.error(`Non-fatal: Failed to clean up directory ${dirPath}:`, error.message);
+        }
+    }
 }

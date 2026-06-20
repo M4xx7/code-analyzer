@@ -5,6 +5,7 @@ import { calculateTypeSafety } from './metrics/typeSafety';
 import type { AnalysisReport, MetricResult } from '../../core/types';
 import { calculateCoupling } from "./metrics/coupling";
 import { Project } from 'ts-morph';
+import { ValidationError } from '../../errors/validation.error';
 
 export class AnalysisService {
 
@@ -13,7 +14,7 @@ export class AnalysisService {
 
     async analyze(repoInput: string): Promise<AnalysisReport> {
         if (!repoInput?.trim()) {
-            throw new Error('Repository input is required');
+            throw new ValidationError('Repository input is required');
         }
 
         const repoPath = await this.repoService.fetchRepo(repoInput);
@@ -64,7 +65,7 @@ export class AnalysisService {
                 },
             };
         } finally {
-
+            await this.repoService.cleanup(repoPath);
         }
     }
 

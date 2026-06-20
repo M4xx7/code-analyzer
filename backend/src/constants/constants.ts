@@ -26,6 +26,13 @@ export const CONSTANTS = {
         COUPLING: 'Coupling'
     },
 
+    ERRORS:{
+        VALIDATION: 'Validation',
+        REPO_NOT_FOUND: 'RepoNotFound',
+        CLONE: 'Clone'
+    },
+
+
     IMPORTS_THRESHOLD: 10,
     INIT_COMPLEXITY: 1,
     ANONYMOUS: 'anonymous'

@@ -1,10 +1,10 @@
 import { Project, SyntaxKind, Node } from 'ts-morph';
 import type { MetricResult } from '../../../core/types';
-import { CONSTANTS } from "../../../constants/constants";
+import { CONSTANTS } from '../../../constants/constants';
 
-export async function calculateTypeSafety(project: Project): Promise<MetricResult> {
-
-
+export async function calculateTypeSafety(
+    project: Project
+): Promise<MetricResult> {
     const sourceFiles = project.getSourceFiles();
 
     if (sourceFiles.length === 0) {
@@ -15,78 +15,76 @@ export async function calculateTypeSafety(project: Project): Promise<MetricResul
         };
     }
 
+    let declarationCount = 0;
+
     let anyCount = 0;
-    let unknownCount = 0;
-    let nonNullAssertions = 0;
-    let totalRelevantNodes = 0;
-    let wellTypedNodes = 0;
+    let asAnyCount = 0;
+    let nonNullAssertionCount = 0;
+    let tsIgnoreCount = 0;
+    let tsNoCheckCount = 0;
 
     for (const sourceFile of sourceFiles) {
+        const text = sourceFile.getFullText();
+
+        tsIgnoreCount += (text.match(/@ts-ignore/g) ?? []).length;
+        tsNoCheckCount += (text.match(/@ts-nocheck/g) ?? []).length;
+
         for (const node of sourceFile.getDescendants()) {
+            // Count declarations to normalize project size
+            if (
+                Node.isVariableDeclaration(node) ||
+                Node.isPropertyDeclaration(node) ||
+                Node.isPropertySignature(node) ||
+                Node.isParameterDeclaration(node) ||
+                Node.isFunctionDeclaration(node) ||
+                Node.isMethodDeclaration(node) ||
+                Node.isArrowFunction(node)
+            ) {
+                declarationCount++;
+            }
 
             if (node.getKind() === SyntaxKind.AnyKeyword) {
                 anyCount++;
             }
 
-            if (node.getKind() === SyntaxKind.UnknownKeyword) {
-                unknownCount++;
-            }
-
             if (node.getKind() === SyntaxKind.NonNullExpression) {
-                nonNullAssertions++;
+                nonNullAssertionCount++;
             }
 
-            if (
-                Node.isVariableDeclaration(node) ||
-                Node.isPropertyDeclaration(node) ||
-                Node.isPropertySignature(node) ||
-                Node.isFunctionDeclaration(node) ||
-                Node.isArrowFunction(node) ||
-                Node.isMethodDeclaration(node) ||
-                Node.isTypeAliasDeclaration(node) ||
-                Node.isInterfaceDeclaration(node)
-            ) {
-                totalRelevantNodes++;
+            if (Node.isAsExpression(node)) {
+                const typeNode = node.getTypeNode();
 
-                let hasGoodType = false;
-
-                if (Node.isVariableDeclaration(node) ||
-                    Node.isPropertyDeclaration(node) ||
-                    Node.isPropertySignature(node)) {
-                    const typeNode = node.getTypeNode();
-                    if (typeNode) {
-                        hasGoodType = true;
-                    }
+                if (typeNode?.getKind() === SyntaxKind.AnyKeyword) {
+                    asAnyCount++;
                 }
 
-                try {
-                    if (Node.isVariableDeclaration(node) || Node.isPropertyDeclaration(node) ||
-                        Node.isPropertySignature(node)
-                    ) {
-
-                        if (node.getTypeNode() !== undefined || node.getInitializer() !== undefined) {
-                            hasGoodType = true;
-                        }
-                    } else {
-                        hasGoodType = true;
-                    }
-                } catch {
-                    // Some nodes may throw when calling getType() - ignore
-                }
-
-                if (hasGoodType) {
-                    wellTypedNodes++;
-                }
             }
         }
     }
 
-    const typeCoverage = totalRelevantNodes === 0 ? 1 : wellTypedNodes / totalRelevantNodes * 100;
+    const unsafePoints =
+        anyCount +
+        asAnyCount +
+        nonNullAssertionCount +
+        tsIgnoreCount +
+        tsNoCheckCount;
 
+    const score =
+        declarationCount === 0
+            ? 100
+            : Math.max(
+                  0,
+                  100 - (unsafePoints / declarationCount) * 100
+              );
 
     return {
         metricName: CONSTANTS.METRICS.TYPE_SAFETY,
-        score: parseFloat(typeCoverage.toFixed(1)),
-        description: `Type coverage: ${(typeCoverage).toFixed(1)}%`,
+        score: Number(score.toFixed(1)),
+        description:
+            `Type safety score: ${score.toFixed(1)}%. ` +
+            `Found ${anyCount} any, ${asAnyCount} as any, ` +
+            `${nonNullAssertionCount} non-null assertions, ` +
+            `${tsIgnoreCount} @ts-ignore, ` +
+            `${tsNoCheckCount} @ts-nocheck.`,
     };
 }

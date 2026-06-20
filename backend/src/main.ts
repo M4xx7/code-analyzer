@@ -4,6 +4,8 @@ import express from 'express';
 import { RepoService } from './modules/repository/repo.service';
 import { AnalysisService } from './modules/analysis/analysis.service';
 import cors from 'cors';
+import { CloneError } from './errors/clone.error';
+import { ValidationError } from './errors/validation.error';
 
 const app = express();
 
@@ -19,7 +21,7 @@ app.post('/api/analyze', async (req, res) => {
 
     if (!repoInput?.trim()) {
         return res.status(400).json({
-            error: 'Missing "repo" field. Please send a GitHub URL or owner/repo'
+            message: 'Missing "repo" field. Please send a GitHub URL or owner/repo'
         });
     }
 
@@ -30,10 +32,24 @@ app.post('/api/analyze', async (req, res) => {
 
         res.json(report);
     } catch (error: any) {
-        console.error('Analysis error:', error);
+        console.error('Analysis error:', error.message);
+
+        if (error instanceof ValidationError){
+            return res.status(400).json({
+                message:error.message
+            });
+        }
+
+        if (error instanceof CloneError) {
+            return res.status(404).json({ 
+                message: error.message 
+            });
+        }
+
         res.status(500).json({
-            error: error.message || 'Analysis failed'
+            message: 'An unexpected internal server error occurred.'
         });
+       
     }
 });
 

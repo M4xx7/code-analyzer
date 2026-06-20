@@ -5,6 +5,7 @@ import {CONSTANTS} from '../../../constants/constants';
 export async function calculateComplexity(project: Project): Promise<MetricResult> {
 
 
+
     const issues = [];
     let totalComplexity = 0;
     let functionCount = 0;
