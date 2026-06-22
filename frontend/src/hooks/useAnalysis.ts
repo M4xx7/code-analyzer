@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { AnalysisResponse } from '@/lib/types';
+import {useState} from 'react';
+import {AnalysisResponse, ApiError} from '@/lib/types';
 
 const API_URL = 'http://localhost:3001/api/analyze';
 
@@ -21,24 +21,22 @@ export function useAnalysis() {
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ repo: trimmed }),
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({repo: trimmed}),
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+                const errorData = data as ApiError;
+                setError(errorData.message);
+                return;
             }
 
-            const data: AnalysisResponse = await response.json();
-            setAnalysis(data);
+            setAnalysis(data as AnalysisResponse);
         } catch (err) {
-            console.error('Analysis failed:', err);
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : 'Failed to analyze repository. Please try again.'
-            );
+            console.error(err);
+            setError('Failed to analyze repository. Please try again.');
         } finally {
             setLoading(false);
         }

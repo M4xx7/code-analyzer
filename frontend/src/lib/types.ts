@@ -57,3 +57,7 @@ export interface AnalysisResponse {
 }
 
 export type MetricType = 'complexity' | 'duplication' | 'typeSafety' | 'coupling';
+
+export type ApiError = {
+    message: string;
+}
