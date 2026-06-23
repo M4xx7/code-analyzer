@@ -10,6 +10,13 @@
 !.yarn/releases
 !.yarn/versions
 
+# IDEs
+.idea/
+.vscode/
+
+# temp data
+temp_repos/
+
 # testing
 /coverage
 

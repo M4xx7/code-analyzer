@@ -1,12 +1,6 @@
 export const CONSTANTS = {
 
-    BASE_TEMP_DIR: './temp_repos',
-
-    GIT: {
-        SHALLOW_CLONE_DEPTH: 1,
-        RETRY_COUNT: 10,
-        RETRY_DELAY_MS: 100,
-    },
+    CHUNK_SIZE: 50,
 
     COMPLEXITY_THRESHOLDS: {
         LOW: 5,
@@ -25,17 +19,6 @@ export const CONSTANTS = {
         TYPE_SAFETY: 'Type Safety',
         COUPLING: 'Coupling'
     },
-
-    ERRORS:{
-        VALIDATION: 'Validation',
-        REPO_NOT_FOUND: 'RepoNotFound',
-        CLONE: 'Clone'
-    },
-
-
-    IMPORTS_THRESHOLD: 10,
-    INIT_COMPLEXITY: 1,
-    ANONYMOUS: 'anonymous'
 
 } as const;
 

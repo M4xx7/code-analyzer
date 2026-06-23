@@ -1,94 +1,65 @@
-import {Project, Node, SyntaxKind} from 'ts-morph';
-import type {MetricResult} from '../../../core/types';
-import {CONSTANTS} from '../../../constants/constants';
+import { Project, SyntaxKind } from 'ts-morph';
 
-export async function calculateComplexity(project: Project): Promise<MetricResult> {
+export async function calculateComplexity(project: Project): Promise<any> {
+    let totalSystemComplexity = 0;
+    const issuesFound: string[] = [];
 
+    const files = project.getSourceFiles();
 
+    for (const file of files) {
+        let fileComplexity = 0;
 
-    const issues = [];
-    let totalComplexity = 0;
-    let functionCount = 0;
-    let maxComplexity = 0;
+        // .forEachDescendant is the fastest native traversal method in TS.
+        // It walks top-down in a single pass. No looking up the tree!
+        file.forEachDescendant((node) => {
+            const kind = node.getKind();
 
-    for (const sourceFile of project.getSourceFiles()) {
-        const filePath = sourceFile.getBaseName();
-
-        const functions = sourceFile.getDescendants().filter(node =>
-            Node.isFunctionDeclaration(node) ||
-            Node.isMethodDeclaration(node) ||
-            Node.isArrowFunction(node) ||
-            Node.isFunctionExpression(node)
-        );
-
-        for (const fn of functions) {
-            let complexity = CONSTANTS.INIT_COMPLEXITY;
-            let maxNesting = 0;
-
-            fn.forEachDescendant((node) => {
-                if (isControlFlowStatement(node)) {
-                    complexity++;
-                    const ancestors = node.getAncestors();
-                    const depth = ancestors.filter(a =>
-                        isControlFlowStatement(a)
-                    ).length;
-                    maxNesting = Math.max(maxNesting, depth + 1);
-                }
-
-                if (Node.isBinaryExpression(node)) {
-
-                    const op = node.getOperatorToken().getText();
-                    if (isLogicalOperator(op)) {
-                        complexity++;
-                    }
-                }
-
-                if (node.getKind() === SyntaxKind.QuestionDotToken) {
-                    complexity++;
-                }
-
-            });
-
-            totalComplexity += complexity;
-            functionCount++;
-            maxComplexity = Math.max(maxComplexity, complexity);
-
-            if (complexity > CONSTANTS.COMPLEXITY_THRESHOLDS.MEDIUM || maxNesting > CONSTANTS.NESTING_THRESHOLDS.MEDIUM) {
-                issues.push({
-                    file: filePath,
-                    functionName: fn.getSymbol()?.getName() || CONSTANTS.ANONYMOUS,
-                    complexity,
-                    nesting: maxNesting,
-                });
+            // 1. Base complexity: Every function/method starts with a complexity of 1
+            if (
+                kind === SyntaxKind.FunctionDeclaration ||
+                kind === SyntaxKind.MethodDeclaration ||
+                kind === SyntaxKind.ArrowFunction ||
+                kind === SyntaxKind.FunctionExpression
+            ) {
+                fileComplexity++;
             }
+
+            // 2. Control flow: Every branch adds 1 to the complexity
+            if (
+                kind === SyntaxKind.IfStatement ||
+                kind === SyntaxKind.WhileStatement ||
+                kind === SyntaxKind.DoStatement ||
+                kind === SyntaxKind.ForStatement ||
+                kind === SyntaxKind.ForInStatement ||
+                kind === SyntaxKind.ForOfStatement ||
+                kind === SyntaxKind.CaseClause ||
+                kind === SyntaxKind.CatchClause ||
+                kind === SyntaxKind.ConditionalExpression || // The ternary operator (? :)
+                kind === SyntaxKind.AmpersandAmpersandToken || // &&
+                kind === SyntaxKind.BarBarToken // ||
+            ) {
+                fileComplexity++;
+            }
+        });
+
+        totalSystemComplexity += fileComplexity;
+
+        // Flag files that are absolute spaghetti code
+        if (fileComplexity > 50) {
+            issuesFound.push(`${file.getBaseName()} has extreme complexity (${fileComplexity} branches).`);
         }
     }
 
-    issues.sort((a, b) => b.complexity - a.complexity);
-
-    const avgComplexity = functionCount > 0 ? totalComplexity / functionCount : 0;
+    // Calculate a rough health score out of 100 based on average complexity per file
+    const avgComplexity = files.length > 0 ? totalSystemComplexity / files.length : 0;
+    
+    // If average complexity per file is 10, score is 80. If it's 50, score is 0.
+    const score = Math.max(0, Math.min(100, 100 - (avgComplexity * 2)));
 
     return {
-        metricName: CONSTANTS.METRICS.COMPLEXITY,
-        score: parseFloat(avgComplexity.toFixed(2)),
-        description: `
-        Analyzed ${functionCount} functions.\n
-        Avg complexity: ${avgComplexity.toFixed(2)}
-        `.trim(),
-        issuesFound: issues,
+        metricName: 'Cyclomatic Complexity',
+        score: Math.round(score),
+        description: `Total branches: ${totalSystemComplexity} (Avg: ${avgComplexity.toFixed(1)} per file)`,
+        issuesFound: issuesFound.slice(0, 5) // Keep terminal output clean
     };
-}
-
-function isControlFlowStatement(node: Node): boolean {
-
-    return Node.isIfStatement(node) ||
-        Node.isForStatement(node) ||
-        Node.isWhileStatement(node) ||
-        Node.isDoStatement(node) ||
-        Node.isSwitchStatement(node) ||
-        Node.isCatchClause(node);
-}
-
-function isLogicalOperator(operator: string): boolean {
-    return operator === '&&' || operator === '||' || operator === '??';
 }
