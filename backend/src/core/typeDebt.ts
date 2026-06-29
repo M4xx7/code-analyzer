@@ -3,7 +3,7 @@ import { TypeDebtMetrics } from "../types";
 import { CONSTANTS } from "../constants";
 
 
-const SUPPRESSION_REGEX = /@ts-ignore|@ts-expect-error|@ts-nocheck/g;
+const SUPPRESSION_REGEX = /(?:\/\/|\/\*)\s*@ts-(ignore|expect-error|nocheck)/g;
 
 export function getTypeDebt(sourceFile: SourceFile): TypeDebtMetrics {
 
@@ -16,7 +16,6 @@ export function getTypeDebt(sourceFile: SourceFile): TypeDebtMetrics {
     validTypes: 0,
     score: 0
   }
-
 
   sourceFile.forEachDescendant(node => {
 
@@ -41,14 +40,24 @@ export function getTypeDebt(sourceFile: SourceFile): TypeDebtMetrics {
 
     }
 
-    //implicit any 
+    // implicit any 
     if (kind === SyntaxKind.Parameter) {
       const parameter = node.asKindOrThrow(SyntaxKind.Parameter);
 
       if (!parameter.getTypeNode() && !parameter.getInitializer()) {
-        metrics.implicitAny++;
-      }
+        const parentFunction = parameter.getParent();
+        const grandParent = parentFunction?.getParent();
 
+        // Ignore parameters in callbacks (e.g., .map(item => ...))
+        const isCallback =
+          (parentFunction?.getKind() === SyntaxKind.ArrowFunction ||
+            parentFunction?.getKind() === SyntaxKind.FunctionExpression) &&
+          grandParent?.getKind() === SyntaxKind.CallExpression;
+
+        if (!isCallback) {
+          metrics.implicitAny++;
+        }
+      }
     }
 
     // not null expression
@@ -58,14 +67,7 @@ export function getTypeDebt(sourceFile: SourceFile): TypeDebtMetrics {
 
 
     // valid types
-    else if (
-      kind === SyntaxKind.TypeReference ||
-      kind === SyntaxKind.StringKeyword ||
-      kind === SyntaxKind.NumberKeyword ||
-      kind === SyntaxKind.BooleanKeyword ||
-      kind === SyntaxKind.InterfaceDeclaration ||
-      kind === SyntaxKind.TypeAliasDeclaration
-    ) {
+    else if (isValidType(kind)) {
       metrics.validTypes++;
     }
 
@@ -98,8 +100,9 @@ function calculateScore(metrics: TypeDebtMetrics): number {
 
   else {
     const baseScore = (metrics.validTypes / totalTypeNodes) * 100;
-    const penalty = calculatePenalty(metrics);
-    return Math.max(0, Math.round(baseScore - penalty));
+    const rawPenalty = calculatePenalty(metrics);
+    const scaledPenalty = (rawPenalty / totalTypeNodes) * 100;
+    return Math.max(0, Math.round(baseScore - scaledPenalty));
   }
 
 }
@@ -110,4 +113,13 @@ function calculatePenalty(metrics: TypeDebtMetrics): number {
     + metrics.asAny * CONSTANTS.TYPE_DEBT_METRICS.AS_ANY_WEIGHT
     + metrics.nonNullAssertions * CONSTANTS.TYPE_DEBT_METRICS.NON_NULL_ASSERTION_WEIGHT
     + metrics.suppressions * CONSTANTS.TYPE_DEBT_METRICS.SUPPRESSION_WEIGHT;
+}
+
+function isValidType(kind: SyntaxKind): boolean {
+  return (kind === SyntaxKind.TypeReference ||
+    kind === SyntaxKind.StringKeyword ||
+    kind === SyntaxKind.NumberKeyword ||
+    kind === SyntaxKind.BooleanKeyword ||
+    kind === SyntaxKind.InterfaceDeclaration ||
+    kind === SyntaxKind.TypeAliasDeclaration);
 }

@@ -3,13 +3,13 @@ import { fdir } from "fdir";
 export function getTargetFiles(directoryPath: string): string[] {
   const crawler = new fdir()
     .withFullPaths()
-    .exclude((dirName) => 
-      dirName === "node_modules" || 
-      dirName === "dist" || 
-      dirName === "build" || 
+    .exclude((dirName) =>
+      dirName === "node_modules" ||
+      dirName === "dist" ||
+      dirName === "build" ||
       dirName === ".git"
     )
-    .filter((path) => path.endsWith(".ts") || path.endsWith(".js"))
+    .filter((path) => path.endsWith(".ts") || path.endsWith(".tsx"))
     .crawl(directoryPath);
 
   return crawler.sync() as string[];
@@ -24,4 +24,17 @@ export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
   return chunks;
 }
 
-export const toMB = (bytes: number) => Math.round(bytes / 1024 / 1024);
+
+export async function validateDirectory(path: string) {
+  let stats;
+
+  try {
+    stats = await fs.stat(path);
+  } catch {
+    throw new Error(`Directory "${path}" does not exist.`);
+  }
+
+  if (!stats.isDirectory()) {
+    throw new Error(`"${path}" is not a directory.`);
+  }
+}
