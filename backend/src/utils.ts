@@ -1,4 +1,6 @@
 import { fdir } from "fdir";
+import { stat } from "fs/promises";
+
 
 export function getTargetFiles(directoryPath: string): string[] {
   const crawler = new fdir()
@@ -26,10 +28,11 @@ export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
 
 
 export async function validateDirectory(path: string) {
+
   let stats;
 
   try {
-    stats = await fs.stat(path);
+    stats = await stat(path);
   } catch {
     throw new Error(`Directory "${path}" does not exist.`);
   }

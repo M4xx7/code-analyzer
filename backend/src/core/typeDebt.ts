@@ -83,7 +83,7 @@ export function getTypeDebt(sourceFile: SourceFile): TypeDebtMetrics {
   return metrics;
 }
 
-function calculateScore(metrics: TypeDebtMetrics): number {
+export function calculateScore(metrics: TypeDebtMetrics): number {
 
   const totalDebtInstances =
     metrics.explicitAny +
@@ -107,7 +107,7 @@ function calculateScore(metrics: TypeDebtMetrics): number {
 
 }
 
-function calculatePenalty(metrics: TypeDebtMetrics): number {
+export function calculatePenalty(metrics: TypeDebtMetrics): number {
   return metrics.explicitAny * CONSTANTS.TYPE_DEBT_METRICS.EXPLICIT_ANY_WEIGHT
     + metrics.implicitAny * CONSTANTS.TYPE_DEBT_METRICS.IMPLICIT_ANY_WEIGHT
     + metrics.asAny * CONSTANTS.TYPE_DEBT_METRICS.AS_ANY_WEIGHT

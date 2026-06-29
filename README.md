@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Type Debt
 
-## Getting Started
+> A high-performance TypeScript static analyzer that calculates Type Debt and generates reports.
 
-First, run the development server:
+![Type Debt Output]([INSERT_SCREENSHOT_HERE_OR_LINK_TO_IMAGE])
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Overview
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Type Debt is a fast CLI tool designed to traverse massive TypeScript codebases, analyze the Abstract Syntax Tree (AST), and evaluate how well the code is typed. It finds the "shortcuts" developers take to speed up the development process and grades every file on a 0-100 scale using a scaled density algorithm.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**It detects the occurrences of:**
+- Explicit `any`
+- Implicit `any`
+- Type assertions (`as any`)
+- Non-null assertions (`!`)
+- Compiler suppressions (`@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Installation
 
-## Learn More
+You can install Type Debt globally on your machine to use it anywhere:
 
-To learn more about Next.js, take a look at the following resources:
+\`\`\`bash
+npm install -g type-debt
+\`\`\`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+*(Alternatively, run it locally in your project using `npx type-debt .`)*
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Usage
 
-## Deploy on Vercel
+Navigate to any directory containing TypeScript files and run the CLI:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+\`\`\`bash
+# Scan the current directory
+type-debt .
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Scan a specific directory
+type-debt ./src/backend
+\`\`\`
+
+The tool will process your files and generate a `type-debt-report.md` featuring an aggregated score and a ranked table of the top 10 worst offenders.
+
+## Architecture
+
+- **Parallel DFS Crawling:** Utilizes `fdir` to recursively map the file tree, isolating `.ts` and `.tsx` files while ignoring dependency folders.
+- **Syntactic AST Analysis:** Uses `ts-morph` for structural parsing, entirely bypassing the slow semantic TypeScript TypeChecker.
+- **Density-Scaled Scoring:** Density-based algorithm, ensuring fair grading for files of different sizes.
+
+## Tech Stack
+- **TypeScript** (Core language)
+- **ts-morph** (AST parsing engine)
+- **fdir** (High-speed file system crawler)
+- **Vitest** (Testing framework)
+- **tsup** (ESBuild bundler for the final CLI executable)

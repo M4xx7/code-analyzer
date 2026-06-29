@@ -1,7 +1,6 @@
-import { performance } from "perf_hooks";
 import { getTargetFiles } from "./utils.js";
 import { chunkArray, validateDirectory } from "./utils.js";
-import { processChunk } from "./core/engine.js";
+import { processChunk } from "./core/chunkProcessor.js";
 import { FileReport } from "./types.js";
 import { CONSTANTS } from "./constants.js";
 import { generateMarkdownReport } from "./core/reporter.js";
@@ -26,7 +25,6 @@ runCLI(target).catch((err) => {
 async function runCLI(targetDir: string) {
 
   await validateDirectory(targetDir);
-  const startTime = performance.now();
 
   console.log(`\nScanning directory: ${targetDir}`);
   const allFiles = getTargetFiles(targetDir);
@@ -47,9 +45,6 @@ async function runCLI(targetDir: string) {
   }
 
   await generateMarkdownReport(allResults, targetDir);
-
-  const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
-  console.log(`\n\nAnalysis complete in ${totalTime}s`);
 
 }
 

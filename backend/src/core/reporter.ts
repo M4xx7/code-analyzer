@@ -17,7 +17,7 @@ export async function generateMarkdownReport(results: FileReport[], targetDir: s
   let md = `Type Debt Report\n\n`;
   md += `> Generated on: ${new Date().toUTCString()}\n\n`;
 
-  md += `## Global Summary\n`;
+  md += `## Summary\n`;
   md += `- Total Files Scanned: ${totalFiles}\n`;
   md += `- Average Score: ${averageScore}/100\n\n`;
 
@@ -33,9 +33,7 @@ export async function generateMarkdownReport(results: FileReport[], targetDir: s
 
   for (const result of worstOffenders) {
     const metrics = result.typeDebtMetrics;
-
     const cleanPath = path.relative(absoluteTargetDir, result.filePath);
-
     md += `| ${metrics.score} | \`${cleanPath}\` | ${metrics.suppressions} | ${metrics.implicitAny} | ${metrics.explicitAny} | ${metrics.asAny} | ${metrics.nonNullAssertions} |\n`;
   }
 
