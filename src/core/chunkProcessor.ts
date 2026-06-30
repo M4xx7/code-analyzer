@@ -1,6 +1,6 @@
 import { Project } from "ts-morph";
-import { getTypeDebt } from "./typeDebt";
-import { FileReport } from "../types";
+import { getTypeDebt } from "./typeDebt.js";
+import { FileReport } from "../types.js";
 
 
 export function processChunk(chunk: string[]): FileReport[] {

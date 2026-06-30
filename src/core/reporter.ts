@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { FileReport } from "../types"
+import { FileReport } from "../types.js"
 
 
 export async function generateMarkdownReport(results: FileReport[], targetDir: string, outputPath = "type-debt-report.md") {

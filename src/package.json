@@ -1,14 +1,28 @@
 {
-  "name": "src",
-  "version": "1.0.0",
+  "name": "@m4x_7/type-debt",
+  "version": "1.0.7",
   "type": "module",
-  "description": "",
-  "main": "index.js",
+  "description": "A high-performance TypeScript static analyzer that calculates Type Debt and generates reports.",
+  "main": "./dist/index.js",
+  "bin": {
+    "type-debt": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "test": "vitest",
     "dev": "nodemon --ignore temp_repos/ --exec ts-node main.ts"
   },
-  "keywords": [],
+  "keywords": [
+    "typescript",
+    "analyzer",
+    "type-debt",
+    "cli"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {

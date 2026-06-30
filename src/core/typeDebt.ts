@@ -1,6 +1,6 @@
 import { SourceFile, SyntaxKind } from "ts-morph";
-import { TypeDebtMetrics } from "../types";
-import { CONSTANTS } from "../constants";
+import { TypeDebtMetrics } from "../types.js";
+import { CONSTANTS } from "../constants.js";
 
 
 const SUPPRESSION_REGEX = /(?:\/\/|\/\*)\s*@ts-(ignore|expect-error|nocheck)/g;
